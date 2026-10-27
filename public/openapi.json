@@ -1,0 +1,122 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Kaii OTP Internal API",
+    "version": "1.0.0",
+    "description": "Same-origin API for Kaii OTP. JasaOTP API keys are never accepted from or returned to clients."
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/api/health": {
+      "get": { "summary": "Configuration status (booleans only)", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/auth/register": {
+      "post": { "summary": "Register with Supabase Auth", "responses": { "201": { "description": "Created" }, "429": { "description": "Rate limited" } } }
+    },
+    "/api/auth/login": {
+      "post": { "summary": "Login and set secure session cookie", "responses": { "200": { "description": "OK" }, "401": { "description": "Invalid credentials" } } }
+    },
+    "/api/auth/logout": {
+      "post": { "summary": "Clear session", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/countries": {
+      "get": { "summary": "List provider countries", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/services": {
+      "get": {
+        "summary": "List provider services for a country",
+        "parameters": [{ "name": "negara", "in": "query", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/operators": {
+      "get": {
+        "summary": "List provider operators for a country",
+        "parameters": [{ "name": "negara", "in": "query", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/orders": {
+      "get": { "summary": "List own orders", "responses": { "200": { "description": "OK" } } },
+      "post": {
+        "summary": "Buy a number",
+        "parameters": [{ "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["negara", "layanan", "operator"],
+                "properties": {
+                  "negara": { "type": "integer" },
+                  "layanan": { "type": "string" },
+                  "operator": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" }, "402": { "description": "Insufficient balance" }, "409": { "description": "Duplicate or rejected" } }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "summary": "Own order detail",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/orders/{id}/otp": {
+      "get": {
+        "summary": "Check OTP status for own order",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/orders/{id}/cancel": {
+      "post": {
+        "summary": "Cancel own order after official provider refund confirmation",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "OK" }, "409": { "description": "In progress or not cancellable" } }
+      }
+    },
+    "/api/provider/balance": {
+      "get": { "summary": "Provider operational balance (admin only)", "responses": { "200": { "description": "OK" }, "403": { "description": "Forbidden" } } }
+    },
+    "/api/dashboard/summary": {
+      "get": { "summary": "Balance, counts and recent orders", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/wallet/transactions": {
+      "get": { "summary": "Own transaction ledger", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/wallet/deposits": {
+      "get": { "summary": "Own manual deposit requests", "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "Create pending manual deposit request", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/admin/deposits": {
+      "get": { "summary": "All deposit requests (admin only)", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/admin/deposits/{id}": {
+      "patch": { "summary": "Approve or reject deposit (admin only)", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/support/messages": {
+      "post": { "summary": "Create support message", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/cron/cleanup": {
+      "get": {
+        "summary": "Clear expired OTP codes and old rate-limit rows",
+        "security": [{ "cronBearer": [] }],
+        "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cronBearer": { "type": "http", "scheme": "bearer" }
+    }
+  }
+}
